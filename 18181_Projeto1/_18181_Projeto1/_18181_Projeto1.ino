@@ -4,7 +4,7 @@
 //definição do pino de rele
 #define pinRele 7 
 //definindo uma porta serial virtual
-SoftwareSerial Serial1(8,9);
+SoftwareSerial Serial1(9,10);
 //definindo o nome, senha da rede e crinado
 //uma variavel para o estado da rede
 char ssid[] = "TSE_JoaoAugusto";
@@ -32,7 +32,7 @@ void setup() {
   //espera conectar a rede
   while (status != WL_CONNECTED){
     Serial.println("tentando conectar...");
-    status = WiFi.begin(ssid,pass);
+    status = WiFi.beginAP(ssid, 10, pass, ENC_TYPE_WPA2_PSK);
   }
   // avisa que houve a conexão, inicia o servidor e
   // printa o ip na porta de debug
@@ -60,7 +60,7 @@ void loop() {
         //reação para cada resposta do servidor
         //desconecta o cliente
         if (buf.endsWith("\r\n\r\n")){
-          Serial.println("Fechando"); 
+          sendHttpResponse(client);
           break;
         }
         // liga o rele
@@ -85,31 +85,31 @@ void loop() {
 }
 
 void sendHttpResponse(WiFiEspClient client){
-  client.println("HTTP/1.1 200 OK"); //escreve a versão do http
-  client.println("Content-Type: text/html"); //escreve o tipo do conteudo(texto/html)
-  client.println("");
-  client.println("<!DOCTYPE HTML>"); //informa que é um html
-
-  //estrutura da pag
-  client.println("<html>"); 
-  client.println("<head>"); 
-  client.println("<title>Controlador de lampada</title>");
-  client.println("</head>"); 
-  client.println("<body>");
-  client.println("<font>ESTADO ATUAL DO LED</font>"); //ESCREVE O TEXTO NA PÁGINA
-  
+ client.print(
+    "HTTP/1.1 200 OK\r\n"
+    "Content-Type: text/html\r\n"
+    "Connection: close\r\n"  // a conexão será fechada depois de concluir
+    "Refresh: 20\r\n"        // a pagina ira atualizar automaticamente a cada 20 sec
+    "\r\n");
+  client.println("\r \n");
+  client.println("\r \n");
+  client.println("<!DOCTYPE HTML><html>\r \n");
+  client.println("<head><title>Ligar rele");
+  client.println("</title></head>\r \n");
+  client.println("<body> <br><br><center>\r \n");
+  client.println("<H1> LIGANDO RELE</H1>\r \n");
   if (ligado) // muda a pagina de acordo com o estado da lampada
   {
     client.println("<p style='line-height:0'><font color='green'>LIGADO</font></p>");
-    client.println("<a href=\"/OFF\">APAGAR</a>"); //faz o botão enviar a resposta que apaga o led
+    client.println("<form action=\"ON\" method=\"get\"><button type='submit'>Desligar</button></form>\r \n"); //faz o botão enviar a resposta que apaga o led
   }else{
     client.println("<p style='line-height:0'><font color='red'>DESLIGADO</font></p>");
-    client.println("<a href=\"/ON\">ACENDER</a>"); //faz o botão enviar a resposta que acender o led
+    client.println("<form action=\"OFF\" method=\"get\"><button type='submit'>Ligar</button></form>"); //faz o botão enviar a resposta que acender o led
     }
+  client.println("</center></body></html>\r \n");
+  client.println();
   
-  client.println("<hr />"); 
-  client.println("<hr />"); 
-  client.println("</body>"); 
-  client.println("</html>");
+  
+  
   delay(1);
 }
